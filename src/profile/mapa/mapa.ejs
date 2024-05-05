@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no" />
+    <title>Animated Marker with Toast</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@v7.2.2/ol.css">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/ol@v7.2.2/dist/ol.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.0/umd/popper.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <link href="https://fonts.googleapis.com/css?family=Lato:300,400,700,900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
+    <script src="https://cesium.com/downloads/cesiumjs/releases/1.82/Build/Cesium/Cesium.js"></script>
+    <link href="https://cesium.com/downloads/cesiumjs/releases/1.82/Build/Cesium/Widgets/widgets.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:400,700&display=swap">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.1/normalize.min.css">
+ 
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap/dist/css/bootstrap.min.css">
+
+    <script>
+
+
+
+
+
+
+
+
+
+//Poluição atual
+
+//http://api.openweathermap.org/data/2.5/air_pollution?lat=50&lon=50&appid=909db2171a7383199a57cb791c612812
+
+
+//Previsão de poluição
+
+//http://api.openweathermap.org/data/2.5/air_pollution/forecast?lat={lat}&lon={lon}&appid={API key}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    </script>
+
+    <style>
+        html,
+body {
+  overflow: hidden;
+  margin: 0px;
+  padding: 0px;
+  height: 100%;
+}
+      #map {position: absolute; top: 0; right: 0; bottom: 0; left: 0;}
+      /* Defina a classe da animação */
+      .animated-marker {
+        animation: bounce 1s infinite;
+      }
+      @keyframes bounce {
+        0%, 20%, 50%, 80%, 100% {
+          transform: translateY(0);
+        }
+        40% {
+          transform: translateY(-30px);
+        }
+        60% {
+          transform: translateY(-15px);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-light bg-light fixed-top">
+      <div class="container">
+        <a class="navbar-brand" href="#"><span style="font-weight: bold;">Firefly</span></a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarResponsive" aria-controls="navbarResponsive" aria-expanded="false" aria-label="Toggle navigation">
+          <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarResponsive">
+          <ul class="navbar-nav ms-auto">
+            <li class="nav-item active">
+              <a class="nav-link" href="/">Home</a>
+            </li>
+            <li class="nav-item active">
+              <a class="nav-link" href="#"></a>
+            </li>
+          <!--Social Icons in Header-->
+          <%
+          if( isAuthenticated ){
+          %>
+          <a href="/dashboard"><input type="button" id="cadastro" value="Dashboard"></a>
+           <%}
+           else{%>
+              <a href="/login"><input type="button" id="cadastro" value="Sign In or Sign Up"></a>
+          <% } %>
+           
+          <style>
+              #cadastro{
+                  background-color: transparent;
+                  width: 140px;
+                  height: 50px;
+                  border-style: solid;
+                  border-color: black;
+              }
+              #cadastro:hover{
+                  background-color: black;
+                  color: white;
+                  width: 140px;
+                  height: 50px;
+                  border-style: solid;
+                  border-color: black;
+              }
+          </style>
+          </ul>
+        </div>
+      </div>
+    </nav>
+    <br><br>
+    <style>
+      .carousel-item {
+        height: 65vh;
+        min-height: 350px;
+        background: no-repeat center center scroll;
+        -webkit-background-size: cover;
+        -moz-background-size: cover;
+        -o-background-size: cover;
+        background-size: cover;
+      }
+
+      html,
+body {
+  overflow: hidden;
+  margin: 0px;
+  padding: 0px;
+  height: 100%;
+}
+#cesiumContainer {
+  height: 100%;
+}
+
+    </style>
+ <div id="cesiumContainer"></div>
+ <script>
+
+   // Get your token from https://cesium.com/ion/tokens
+   Cesium.Ion.defaultAccessToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiIwZjI3ZTZhYS1iMjdmLTQzZDItODc0MC1kYThhNjMzYjhmYWUiLCJpZCI6MTY5MzM5LCJpYXQiOjE2OTYwNTM2MTF9.gT35T_1PQEzdJxg-1jlCcxG4C5JOL8E9hOTLVEF_1ys';
+   const viewer = new Cesium.Viewer('cesiumContainer');
+      // Defina as coordenadas para o marcador
+
+    // Dados de queimadas obtidos do servidor
+    const firedCesium = <%- JSON.stringify(fireData) %>;
+    console.log(firedCesium);
+
+   // Função para exibir informações do marcador
+   function displayMarkerInfo(dataPoint) {
+      const modalBody = document.getElementById('markerInfo');
+      modalBody.innerHTML = `
+        <p>Latitude: ${dataPoint.latitude}</p>
+        <p>Longitude: ${dataPoint.longitude}</p>
+        <p>Brightness (TI4): ${dataPoint.bright_ti4}</p>
+        <p>Scan: ${dataPoint.scan}</p>
+        <!-- Adicione mais propriedades conforme necessário -->
+      `;
+      $('#markerModal').modal('show'); // Mostrar o modal
+   '' }
+
+   const markerLongitude = firedCesium[0].longitude; // Pega a longitude do primeiro ponto de dados
+   const markerLatitude = firedCesium[0].latitude; // Pega a latitude do primeiro ponto de dados
+
+
+ let dataset;
+
+viewer.screenSpaceEventHandler.setInputAction(function (click) {
+  const pickedObject = viewer.scene.pick(click.position);
+  if (Cesium.defined(pickedObject) && Cesium.defined(pickedObject.id)) {
+    // Verifica se o objeto clicado é uma entidade com descrição
+    const description = pickedObject.id.description;
+    if (Cesium.defined(description)) {
+     
+
+      // Obtenha as coordenadas do ponto clicado
+      const position = pickedObject.id.position.getValue(); // Obtenha o valor da posição
+const cartographicPosition = Cesium.Cartographic.fromCartesian(position); // Converta para coordenadas cartográficas
+
+const latitude = Cesium.Math.toDegrees(cartographicPosition.latitude); // Obtenha a latitude em graus
+const longitude = Cesium.Math.toDegrees(cartographicPosition.longitude); // Obtenha a longitude em graus
+
+      // Faça uma requisição para a URL com as coordenadas
+      const url = `http://api.openweathermap.org/data/2.5/air_pollution?lat=${latitude}&lon=${longitude}&appid=909db2171a7383199a57cb791c612812`;
+
+  // Faça a requisição HTTP
+fetch(url)
+  .then((response) => response.json())
+  .then((data) => {
+    // Acesse os dados específicos que você deseja exibir
+    const desiredData = data.list[0].components;
+    
+    // Crie uma string formatada com os dados desejados
+    const formattedData = `
+     Nivel de CO: ${desiredData.co},
+     Nivel de NO: ${desiredData.no},
+     Nivel de NO2: ${desiredData.no2},
+     Nivel de O3: ${desiredData.o3},
+     Nivel de SO2: ${desiredData.so2},
+     Nivel de  PM2.5: ${desiredData.pm2_5},
+     Nivel de PM10: ${desiredData.pm10},
+     Nivel de NH3: ${desiredData.nh3}.
+    `;
+
+    // Exiba a descrição e os dados formatados em uma aba ou modal
+    const modalBody = document.getElementById('markerInfo');
+    modalBody.textContent = description + formattedData;
+    $('#markerModal').modal('show'); // Mostrar o modal
+  })
+  .catch((error) => {
+    console.error('Erro na requisição:', error);
+  });
+
+
+  
+    }
+  }
+}, Cesium.ScreenSpaceEventType.LEFT_CLICK);
+
+for (const dataPoint of firedCesium) {
+    const frpValue = dataPoint.frp; // Supondo que o valor do FRP esteja em 'bright_ti4'
+
+// Defina os limites para cada categoria
+const lowThreshold = 5; // Limite para intensidade baixa
+const mediumThreshold = 10; // Limite para intensidade média
+const highThreshold = 15; // Limite para intensidade alta
+
+// Defina as cores para cada categoria
+const lowColor = 'yellow'; // Cor para intensidade baixa
+const mediumColor = 'darkorange'; // Cor para intensidade média
+const highColor = 'red'; // Cor para intensidade alta
+const superHighColor = 'darkred'; // Cor para intensidade super alta
+
+// Mapeie a intensidade para a cor correspondente com base nos limites
+let intensityColor;
+if (frpValue <= lowThreshold) {
+  intensityColor = lowColor;
+} else if (frpValue <= mediumThreshold) {
+  intensityColor = mediumColor;
+} else if (frpValue <= highThreshold) {
+  intensityColor = highColor;
+} else {
+  intensityColor = superHighColor;
+}
+
+// Crie a propriedade 'intensity' para o marcador
+dataPoint.intensity = intensityColor;
+
+
+
+const markerEntity = viewer.entities.add({
+  name: 'Marcador',
+  position: Cesium.Cartesian3.fromDegrees(dataPoint.longitude, dataPoint.latitude),
+  point: {
+    pixelSize: 10,
+    color: Cesium.Color.fromCssColorString(intensityColor), // Use a cor mapeada
+    outlineColor: Cesium.Color.WHITE,
+    outlineWidth: 2,
+  },
+});
+   // Adicione um evento de clique ao marcador
+   markerEntity.description = `
+    Latitude: ${dataPoint.latitude},
+    Longitude: ${dataPoint.longitude},
+    Brightness (TI4): ${dataPoint.bright_ti4},
+    Scan: ${dataPoint.scan},` ;
+
+}
+ </script>
+
+
+    <div id="map"><br><br></div>
+    <!-- Modal for marker information -->
+<div class="modal fade" id="markerModal" tabindex="-1" role="dialog" aria-labelledby="markerModalLabel" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="markerModalLabel">Marker Information</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <!-- Display marker information here -->
+        <div id="markerInfo"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+    <!-- Adicione o elemento para o toast -->
+    <div id="map-toast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+      <div class="toast-body">
+        Seu texto de toast aqui.
+      </div>
+    </div>
+
+    <!-- SEU_CÓDIGO_HTML_AQUI -->
+
+      <!-- Seu código JavaScript -->
+  <script>
+    const key = '2NGetmz5vgT2wtvoamaN';
+
+    const attribution = new ol.control.Attribution({
+      collapsible: false,
+    });
+
+    const source = new ol.source.TileJSON({
+      url: `https://api.maptiler.com/tiles/satellite-mediumres-2018/tiles.json?key=${key}`, // source URL
+      tileSize: 512,
+      crossOrigin: 'anonymous'
+    });
+
+    const map = new ol.Map({
+      layers: [
+        new ol.layer.Tile({
+          source: source
+        })
+      ],
+      controls: ol.control.defaults.defaults({attribution: false}).extend([attribution]),
+      target: 'map',
+      view: new ol.View({
+        constrainResolution: true,
+        center: ol.proj.fromLonLat([16.62662018, 49.2125578]), // starting position [lng, lat]
+        zoom: 2 // starting zoom (ajustado para 2 para mostrar o ícone no zoom mínimo)
+      })
+    });
+
+    // Coordenadas do ponto com animação
+    const point = ol.proj.fromLonLat([16.62662018, 49.2125578]);
+
+    // Criar uma camada de vetor para os marcadores
+    const vectorLayer = new ol.layer.Vector({
+      source: new ol.source.Vector(),
+    });
+
+    // Adicionar a camada de vetor ao mapa
+    map.addLayer(vectorLayer);
+
+    // Dados de queimadas obtidos do servidor
+    const data = <%- JSON.stringify(fireData) %>;
+
+    // Função para exibir informações do marcador
+    function displayMarkerInfo(dataPoint) {
+      const modalBody = document.getElementById('markerInfo');
+      modalBody.innerHTML = `
+        Latitude: ${dataPoint.latitude}/n
+        Longitude: ${dataPoint.longitude}/n
+        Brightness (TI4): ${dataPoint.bright_ti4}/n
+        Scan: ${dataPoint.scan}</p>
+     
+      `;
+      $('#markerModal').modal('show'); // Mostrar o modal
+    }
+
+    // Loop through the data and create markers
+    data.forEach((dataPoint) => {
+      const coordinates = ol.proj.fromLonLat([parseFloat(dataPoint.longitude), parseFloat(dataPoint.latitude)]);
+
+      // Create a feature for each data point
+      const markerFeature = new ol.Feature({
+        geometry: new ol.geom.Point(coordinates),
+      });
+
+      function getMarkerColor(intensity) {
+  // Defina os limites para cada categoria
+  const lowThreshold = 5; // Limite para intensidade baixa
+  const mediumThreshold = 10; // Limite para intensidade média
+  const highThreshold = 15; // Limite para intensidade alta
+
+  // Defina as cores para cada categoria
+  const lowColor = 'yellow'; // Cor para intensidade baixa
+  const mediumColor = 'darkorange'; // Cor para intensidade média
+  const highColor = 'red'; // Cor para intensidade alta
+  const superHighColor = 'darkred'; // Cor para intensidade super alta
+
+  // Mapeie a intensidade para a cor correspondente com base nos limites
+  if (intensity <= lowThreshold) {
+    return lowColor;
+  } else if (intensity <= mediumThreshold) {
+    return mediumColor;
+  } else if (intensity <= highThreshold) {
+    return highColor;
+  } else {
+    return superHighColor;
+  }
+}
+      // Set the style for the marker feature (customize this based on your needs)
+   // Set the style for the marker feature (customize this based on your needs)
+   markerFeature.setStyle(new ol.style.Style({
+                image: new ol.style.Icon({
+                  src: 'imagens_teste/fogo.png', // URL of the marker icon
+                  anchor: [0.5, 1],
+                  scale: 0.1, // Adjust the size of the icon
+                  className: 'animated-marker', // CSS class for animation
+                  color: getMarkerColor(dataPoint.frp), // Defina a cor com base na intensidade (frp)
+                }),
+              })); 
+
+      // Adicione o recurso do marcador à camada de vetor
+      vectorLayer.getSource().addFeature(markerFeature);
+
+      // Adicione um ouvinte de evento de clique a cada marcador
+      markerFeature.on('click', function () {
+        displayMarkerInfo(dataPoint); // Exibir informações do marcador no modal
+      });
+    });
+  </script>
+
+<script>
+  let is2DMapVisible = true;
+
+  function toggleMap() {
+    const button = document.getElementById('toggleMapButton');
+    if (is2DMapVisible) {
+      // Esconde o mapa 2D
+      document.getElementById('map').style.display = 'none';
+      // Exibe o mapa 3D
+      document.getElementById('cesiumContainer').style.display = 'block';
+      button.textContent = 'Mapa 3D Ativado'; // Altera o texto do botão para 3D
+    } else {
+      // Esconde o mapa 3D
+      document.getElementById('cesiumContainer').style.display = 'none';
+      // Exibe o mapa 2D
+      document.getElementById('map').style.display = 'block';
+      button.textContent = 'Mapa 2D Ativado'; // Altera o texto do botão para 2D
+    }
+    is2DMapVisible = !is2DMapVisible; // Inverte o estado da visibilidade
+  }
+</script>
+
+
+  <style>
+    .map {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+#toggleMapButton {
+  position: absolute;
+  z-index: 1; /* Certifique-se de que o botão tenha um z-index maior */
+  top: 10px; /* Ajuste a posição superior conforme necessário */
+  left: 10px; /* Ajuste a posição esquerda conforme necessário */
+}
+
+    /* Estilize a legenda */
+.legend {
+  position: absolute;
+  bottom: 10px;
+  left: 10px;
+  background-color: rgba(255, 255, 255, 0.8);
+  padding: 10px;
+  border-radius: 5px;
+  z-index: 1000;
+}
+
+.legend-bot {
+  position: absolute;
+  bottom: 170px;
+  left: 10px;
+  background-color: rgba(255, 255, 255, 0.8);
+  padding: 10px;
+  border-radius: 5px;
+  z-index: 1000;
+}
+
+
+/* Estilize cada item da legenda */
+.legend-item {
+  display: flex;
+  align-items: center;
+  margin-bottom: 5px;
+}
+
+/* Estilize cada item da legenda */
+.legend-item-bot {
+  display: flex;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+/* Estilize a cor da legenda */
+.legend-color {
+  width: 20px;
+  height: 20px;
+  margin-right: 5px;
+}
+
+/* Estilize o texto da legenda */
+.legend-text {
+  font-size: 14px;
+}
+  </style>
+   <div id="map-legend" class="legend-bot">
+<button id="toggleMapButton" class="legend-item-bot" onclick="toggleMap()" style="width: 170px;border: none; border-radius: 5px; background-color: white;"><center>Mapa 2D Ativado</center></button>
+
+</div>
+
+  <div id="map-legend" class="legend">
+    <div class="legend-item">
+      <div class="legend-color" style="background-color: yellow;"></div>
+      <div class="legend-text">Baixa Intensidade</div>
+    </div>
+    <div class="legend-item">
+      <div class="legend-color" style="background-color: darkorange;"></div>
+      <div class="legend-text">Média Intensidade</div>
+    </div>
+    <div class="legend-item">
+      <div class="legend-color" style="background-color: red;"></div>
+      <div class="legend-text">Alta Intensidade</div>
+    </div>
+    <div class="legend-item">
+      <div class="legend-color" style="background-color: darkred;"></div>
+      <div class="legend-text">Super Alta Intensidade</div>
+    </div>
+  </div>
+
+  </body>
+</html>
